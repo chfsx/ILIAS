@@ -292,4 +292,23 @@ interface Factory {
 	 * @return \ILIAS\UI\Component\Panel\Factory
 	 */
 	public function panel();
+
+
+	/**
+	 * ---
+	 * description:
+	 *   purpose: >
+	 *     Filters are used to reduce the displayed amount of items in a list, such as tables or repository-items
+	 *   composition: >
+	 *      TODO
+	 *   effect: TODO
+	 *
+	 * rules:
+	 *   wording:
+	 *      1: TODO
+	 * ---
+	 *
+	 * @return \ILIAS\UI\Component\Filter\Factory
+	 */
+	public function filter();
 }
