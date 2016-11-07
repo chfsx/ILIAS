@@ -1,4 +1,8 @@
 <?php
+namespace ILIAS\FileDelivery;
+
+use ilFileDeliveryHeaders;
+
 require_once('./Services/Utilities/classes/class.ilMimeTypeUtil.php');
 require_once('./Services/Utilities/classes/class.ilUtil.php'); // This include is needed since WAC can use ilFileDelivery without Initialisation
 require_once('./Services/Context/classes/class.ilContext.php');
@@ -15,7 +19,6 @@ require_once('./Services/WebAccessChecker/classes/class.ilWACLog.php');
 class ilFileDelivery {
 
 	const DIRECT_PHP_OUTPUT = 'php://output';
-	const DELIVERY_METHOD_NONE = 'cache';
 	const DELIVERY_METHOD_XSENDFILE = 'mod_xsendfile';
 	const DELIVERY_METHOD_XACCEL = 'x-accel-redirect';
 	const DELIVERY_METHOD_PHP = 'php';
@@ -23,9 +26,6 @@ class ilFileDelivery {
 	const DELIVERY_METHOD_VIRTUAL = 'virtual';
 	const DISP_ATTACHMENT = 'attachment';
 	const DISP_INLINE = 'inline';
-	const VIRTUAL_DATA = 'virtual-data';
-	const SECURED_DATA = 'secured-data';
-	const DATA = 'data';
 	/**
 	 * @var array
 	 */
@@ -68,7 +68,7 @@ class ilFileDelivery {
 	/**
 	 * @var bool
 	 */
-	protected $convert_file_name_to_asci = false;
+	protected $convert_file_name_to_asci = true;
 	/**
 	 * @var string
 	 */
@@ -166,10 +166,31 @@ class ilFileDelivery {
 
 
 	public function stream() {
-		if (!in_array($this->getDeliveryType(), self::$self_streaming_methods)) {
+		if (!$this->delivery()->supportsStreaming()) {
 			$this->setDeliveryType(self::DELIVERY_METHOD_PHP_CHUNKED);
 		}
 		$this->deliver();
+	}
+
+
+	protected function delivery() {
+		switch ($this->getDeliveryType()) {
+			default:
+				return new FileDeliveryTypes\PHP();
+				break;
+			case self::DELIVERY_METHOD_XSENDFILE:
+				return new FileDeliveryTypes\XSendfile();
+				break;
+			case self::DELIVERY_METHOD_XACCEL:
+				return new FileDeliveryTypes\XAccel();
+				break;
+			case self::DELIVERY_METHOD_PHP_CHUNKED:
+				return new FileDeliveryTypes\PHPChunked();
+				break;
+			case self::DELIVERY_METHOD_VIRTUAL:
+				return new FileDeliveryTypes\Virtual();
+				break;
+		}
 	}
 
 
@@ -178,23 +199,10 @@ class ilFileDelivery {
 		$this->clearBuffer();
 		$this->checkCache();
 		$this->setGeneralHeaders();
+		$this->delivery()->deliver($this->getPathToFile());
 		switch ($this->getDeliveryType()) {
-			default:
-				$this->deliverPHP();
-				break;
-			case self::DELIVERY_METHOD_XSENDFILE:
-				$this->deliverXSendfile();
-				break;
-			case self::DELIVERY_METHOD_XACCEL:
-				$this->deliverXAccelRedirect();
-				break;
 			case self::DELIVERY_METHOD_PHP_CHUNKED:
 				$this->deliverPHPChunked();
-				break;
-			case self::DELIVERY_METHOD_VIRTUAL:
-				$this->deliverVirtual();
-				break;
-			case self::DELIVERY_METHOD_NONE;
 				break;
 		}
 		if ($this->isDeleteFile()) {
@@ -206,46 +214,6 @@ class ilFileDelivery {
 	}
 
 
-	/**
-	 * @description not supported
-	 */
-	public function deliverVirtual() {
-		$path_to_file = $this->getPathToFile();
-		$this->clearHeaders();
-		header('Content-type:');
-		if (strpos($path_to_file, './' . self::DATA . '/') === 0 && is_dir('./' . self::VIRTUAL_DATA)) {
-			$path_to_file = str_replace('./' . self::DATA . '/', '/' . self::VIRTUAL_DATA . '/', $path_to_file);
-		}
-		virtual($path_to_file);
-	}
-
-
-	protected function deliverXSendfile() {
-		$this->clearHeaders();
-		header('X-Sendfile: ' . realpath($this->getPathToFile()));
-	}
-
-
-	protected function deliverXAccelRedirect() {
-		$path_to_file = $this->getPathToFile();
-		$this->clearHeaders();
-		header('Content-type:');
-		if (strpos($path_to_file, './' . self::DATA . '/') === 0) {
-			$path_to_file = str_replace('./' . self::DATA . '/', '/' . self::SECURED_DATA . '/', $path_to_file);
-		}
-
-		header('X-Accel-Redirect: ' . ($path_to_file));
-	}
-
-
-	protected function deliverPHP() {
-		set_time_limit(0);
-		$file = fopen(($this->getPathToFile()), "rb");
-
-		fpassthru($file);
-	}
-
-
 	protected function clearHeaders() {
 		header_remove();
 	}
@@ -254,28 +222,26 @@ class ilFileDelivery {
 	public function setGeneralHeaders() {
 		$this->checkExisting();
 		if ($this->isSendMimeType()) {
-			header("Content-type: " . $this->getMimeType());
+			header(\ilFileDeliveryHeaders::CONTENT_TYPE . ": " . $this->getMimeType());
 		}
-		$download_file_name = $this->getDownloadFileName();
 		if ($this->isConvertFileNameToAsci()) {
-			$download_file_name = ilUtil::getASCIIFilename($download_file_name);
+			$this->cleanDownloadFileName();
 		}
 		if ($this->hasHashFilename()) {
-			$download_file_name = md5($download_file_name);
+			$this->setDownloadFileName(md5($this->getDownloadFileName()));
 		}
-		header('Content-Disposition: ' . $this->getDisposition() . '; filename="' . $download_file_name . '"');
-		header('Content-Description: ' . $download_file_name);
-		header('Accept-Ranges: bytes');
+		$this->setDispositionHeaders();
+		header('' . ilFileDeliveryHeaders::ACCEPT_RANGES . ': bytes');
 		if ($this->getDeliveryType() == self::DELIVERY_METHOD_PHP && $this->getPathToFile() != self::DIRECT_PHP_OUTPUT) {
-			header("Content-Length: " . (string)filesize($this->getPathToFile()));
+			header("" . ilFileDeliveryHeaders::CONTENT_LENGTH . ": " . (string)filesize($this->getPathToFile()));
 		}
-		header("Connection: close");
+		header("" . ilFileDeliveryHeaders::CONNECTION . ": close");
 	}
 
 
 	public function setCachingHeaders() {
-		header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
-		header('Pragma: public');
+		header('' . ilFileDeliveryHeaders::CACHE_CONTROL . ': must-revalidate, post-check=0, pre-check=0');
+		header('' . ilFileDeliveryHeaders::PRAGMA . ': public');
 		$this->sendEtagHeader();
 		$this->sendLastModified();
 	}
@@ -572,109 +538,16 @@ class ilFileDelivery {
 	}
 
 
-	protected function deliverPHPChunked() {
-		$file = $this->getPathToFile();
-		$fp = @fopen($file, 'rb');
-
-		$size = filesize($file); // File size
-		$length = $size;           // Content length
-		$start = 0;               // Start byte
-		$end = $size - 1;       // End byte
-		// Now that we've gotten so far without errors we send the accept range header
-		/* At the moment we only support single ranges.
-		 * Multiple ranges requires some more work to ensure it works correctly
-		 * and comply with the spesifications: http://www.w3.org/Protocols/rfc2616/rfc2616-sec19.html#sec19.2
-		 *
-		 * Multirange support annouces itself with:
-		 * header('Accept-Ranges: bytes');
-		 *
-		 * Multirange content must be sent with multipart/byteranges mediatype,
-		 * (mediatype = mimetype)
-		 * as well as a boundry header to indicate the various chunks of data.
-		 */
-		header("Accept-Ranges: 0-$length");
-		// header('Accept-Ranges: bytes');
-		// multipart/byteranges
-		// http://www.w3.org/Protocols/rfc2616/rfc2616-sec19.html#sec19.2
-		if (isset($_SERVER['HTTP_RANGE'])) {
-			$c_start = $start;
-			$c_end = $end;
-
-			// Extract the range string
-			list(, $range) = explode('=', $_SERVER['HTTP_RANGE'], 2);
-			// Make sure the client hasn't sent us a multibyte range
-			if (strpos($range, ',') !== false) {
-				// (?) Shoud this be issued here, or should the first
-				// range be used? Or should the header be ignored and
-				// we output the whole content?
-				ilHTTP::status(416);
-				header("Content-Range: bytes $start-$end/$size");
-				// (?) Echo some info to the client?
-				$this->close();
-			} // fim do if
-			// If the range starts with an '-' we start from the beginning
-			// If not, we forward the file pointer
-			// And make sure to get the end byte if spesified
-			if ($range{0} == '-') {
-				// The n-number of the last bytes is requested
-				$c_start = $size - substr($range, 1);
-			} else {
-				$range = explode('-', $range);
-				$c_start = $range[0];
-				$c_end = (isset($range[1]) && is_numeric($range[1])) ? $range[1] : $size;
-			} // fim do if
-			/* Check the range and make sure it's treated according to the specs.
-			 * http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html
-			 */
-			// End bytes can not be larger than $end.
-			$c_end = ($c_end > $end) ? $end : $c_end;
-			// Validate the requested range and return an error if it's not correct.
-			if ($c_start > $c_end || $c_start > $size - 1 || $c_end >= $size) {
-				ilHTTP::status(416);
-				header("Content-Range: bytes $start-$end/$size");
-				// (?) Echo some info to the client?
-				$this->close();
-			} // fim do if
-
-			$start = $c_start;
-			$end = $c_end;
-			$length = $end - $start + 1; // Calculate new content length
-			fseek($fp, $start);
-			ilHTTP::status(206);
-		} // fim do if
-
-		// Notify the client the byte range we'll be outputting
-		header("Content-Range: bytes $start-$end/$size");
-		header("Content-Length: $length");
-
-		// Start buffered download
-		$buffer = 1024 * 8;
-		while (!feof($fp) && ($p = ftell($fp)) <= $end) {
-			if ($p + $buffer > $end) {
-				// In case we're only outputtin a chunk, make sure we don't
-				// read past the length
-				$buffer = $end - $p + 1;
-			} // fim do if
-
-			set_time_limit(0); // Reset time limit for big files
-			echo fread($fp, $buffer);
-			flush(); // Free up memory. Otherwise large files will trigger PHP's memory limit.
-		} // fim do while
-
-		fclose($fp);
-	}
-
-
 	protected function sendEtagHeader() {
 		if ($this->getEtag()) {
-			header('ETag: ' . $this->getEtag() . '');
+			header('' . ilFileDeliveryHeaders::E_TAG . ': ' . $this->getEtag() . '');
 		}
 	}
 
 
 	protected function sendLastModified() {
 		if ($this->getShowLastModified()) {
-			header('Last-Modified: ' . date("D, j M Y H:i:s", filemtime($this->getPathToFile())) . " GMT");
+			header('' . ilFileDeliveryHeaders::LAST_MODIFIED . ': ' . date("D, j M Y H:i:s", filemtime($this->getPathToFile())) . " GMT");
 		}
 	}
 
@@ -752,18 +625,62 @@ class ilFileDelivery {
 	}
 
 
-	public function cleanDownloadFileName() {
+	/**
+	 * Converts the filename to ASCII
+	 */
+	protected function cleanDownloadFileName() {
 		$download_file_name = self::returnASCIIFileName($this->getDownloadFileName());
 		$this->setDownloadFileName($download_file_name);
 	}
 
 
 	/**
-	 * @param $original_name
-	 * @return string
+	 * Converts a UTF-8 filename to ASCII
+	 *
+	 * @param $original_filename string UFT8-Filename
+	 * @return string ASCII-Filename
 	 */
-	public static function returnASCIIFileName($original_name) {
-		return ilUtil::getASCIIFilename($original_name);
+	public static function returnASCIIFileName($original_filename) {
+		// The filename must be converted to ASCII, as of RFC 2183,
+		// section 2.3.
+
+		/// Implementation note:
+		/// 	The proper way to convert charsets is mb_convert_encoding.
+		/// 	Unfortunately Multibyte String functions are not an
+		/// 	installation requirement for ILIAS 3.
+		/// 	Codelines behind three slashes '///' show how we would do
+		/// 	it using mb_convert_encoding.
+		/// 	Note that mb_convert_encoding has the bad habit of
+		/// 	substituting unconvertable characters with HTML
+		/// 	entitities. Thats why we need a regular expression which
+		/// 	replaces HTML entities with their first character.
+		/// 	e.g. &auml; => a
+
+		/// $ascii_filename = mb_convert_encoding($a_filename,'US-ASCII','UTF-8');
+		/// $ascii_filename = preg_replace('/\&(.)[^;]*;/','\\1', $ascii_filename);
+
+		// #15914 - try to fix german umlauts
+		$umlauts = array(
+			"Ä" => "Ae",
+			"Ö" => "Oe",
+			"Ü" => "Ue",
+			"ä" => "ae",
+			"ö" => "oe",
+			"ü" => "ue",
+			"ß" => "ss",
+		);
+		foreach ($umlauts as $src => $tgt) {
+			$original_filename = str_replace($src, $tgt, $original_filename);
+		}
+
+		$ascii_filename = htmlentities($original_filename, ENT_NOQUOTES, 'UTF-8');
+		$ascii_filename = preg_replace('/\&(.)[^;]*;/', '\\1', $ascii_filename);
+		$ascii_filename = preg_replace('/[\x7f-\xff]/', '_', $ascii_filename);
+
+		// OS do not allow the following characters in filenames: \/:*?"<>|
+		$ascii_filename = preg_replace('/[:\x5c\/\*\?\"<>\|]/', '_', $ascii_filename);
+
+		return $ascii_filename;
 		//		return iconv("UTF-8", "ASCII//TRANSLIT", $original_name); // proposal
 	}
 
@@ -782,6 +699,11 @@ class ilFileDelivery {
 	public function setDeleteFile($delete_file) {
 		$this->delete_file = $delete_file;
 	}
-}
 
-?>
+
+	protected function setDispositionHeaders() {
+		header('' . ilFileDeliveryHeaders::CONTENT_DISPOSITION . ': ' . $this->getDisposition() . '; filename="' . $this->getDownloadFileName()
+		       . '"');
+		header('' . ilFileDeliveryHeaders::CONTENT_DESCRIPTION . ': ' . $this->getDownloadFileName());
+	}
+}

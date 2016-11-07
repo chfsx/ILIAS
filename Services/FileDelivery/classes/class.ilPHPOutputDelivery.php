@@ -24,7 +24,7 @@ class ilPHPOutputDelivery {
 		$this->ilFileDelivery->setMimeType($mime_type);
 		$this->ilFileDelivery->setDownloadFileName($download_file_name);
 		$this->ilFileDelivery->setDisposition(ilFileDelivery::DISP_ATTACHMENT);
-		$this->ilFileDelivery->cleanDownloadFileName();
+		$this->ilFileDelivery->setConvertFileNameToAsci(true);
 		$this->ilFileDelivery->clearBuffer();
 		$this->ilFileDelivery->checkCache();
 		$this->ilFileDelivery->setGeneralHeaders();
@@ -37,5 +37,3 @@ class ilPHPOutputDelivery {
 		$this->ilFileDelivery->close();
 	}
 }
-
-?>

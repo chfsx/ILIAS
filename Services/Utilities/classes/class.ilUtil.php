@@ -2083,12 +2083,13 @@ class ilUtil
 		return $img;
 	}
 
+
 	/**
-	*   deliver data for download via browser.
-	*   
-	* @static
-	*   
-	*/
+	 *   deliver data for download via browser.
+	 *
+	 * @static
+	 * @deprecated use ilFileDeliver-Class instead
+	 */
 	public static function deliverData($a_data, $a_filename, $mime = "application/octet-stream", $charset = "")
 	{
 		$disposition = "attachment"; // "inline" to view file in browser or "attachment" to download to hard disk
@@ -2249,48 +2250,19 @@ class ilUtil
 		return fclose($handle);
 	}
 
+
 	/**
-	* convert utf8 to ascii filename
-	*
-	* @param	string		$a_filename		utf8 filename
-	* @static
-	* 
-	*/
+	 * convert utf8 to ascii filename
+	 *
+	 * @deprecated Use ilFileDelivery::returnASCIIFileName();
+	 * @param $a_filename
+	 * @return string
+	 */
 	public static function getASCIIFilename($a_filename)
 	{
-		// The filename must be converted to ASCII, as of RFC 2183,
-		// section 2.3.
+		require_once('./Services/FileDelivery/classes/class.ilFileDelivery.php');
 
-		/// Implementation note:
-		/// 	The proper way to convert charsets is mb_convert_encoding.
-		/// 	Unfortunately Multibyte String functions are not an
-		/// 	installation requirement for ILIAS 3.
-		/// 	Codelines behind three slashes '///' show how we would do
-		/// 	it using mb_convert_encoding.
-		/// 	Note that mb_convert_encoding has the bad habit of
-		/// 	substituting unconvertable characters with HTML
-		/// 	entitities. Thats why we need a regular expression which
-		/// 	replaces HTML entities with their first character.
-		/// 	e.g. &auml; => a
-
-		/// $ascii_filename = mb_convert_encoding($a_filename,'US-ASCII','UTF-8');
-		/// $ascii_filename = preg_replace('/\&(.)[^;]*;/','\\1', $ascii_filename);
-				
-		// #15914 - try to fix german umlauts
-		$umlauts = array("Ä"=>"Ae", "Ö"=>"Oe", "Ü"=>"Ue", 
-			"ä"=>"ae", "ö"=>"oe", "ü"=>"ue", "ß"=>"ss");
-		foreach($umlauts as $src => $tgt)
-		{
-			$a_filename = str_replace($src, $tgt, $a_filename);
-		}		
-		
-		$ascii_filename = htmlentities($a_filename, ENT_NOQUOTES, 'UTF-8');
-		$ascii_filename = preg_replace('/\&(.)[^;]*;/', '\\1', $ascii_filename);
-		$ascii_filename = preg_replace('/[\x7f-\xff]/', '_', $ascii_filename);
-		
-		// OS do not allow the following characters in filenames: \/:*?"<>|
-		$ascii_filename = preg_replace('/[:\x5c\/\*\?\"<>\|]/', '_', $ascii_filename);
-		return $ascii_filename;
+		return ilFileDelivery::returnASCIIFileName($a_filename);
 	}
 
 	/**

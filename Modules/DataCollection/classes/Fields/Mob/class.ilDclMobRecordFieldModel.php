@@ -34,7 +34,7 @@ class ilDclMobRecordFieldModel extends ilDclBaseRecordFieldModel {
 			$media_item = new ilMediaItem();
 			$mob->addMediaItem($media_item);
 			$media_item->setPurpose("Standard");
-			$file_name = ilUtil::getASCIIFilename($media['name']);
+			$file_name = ilFileDelivery::returnASCIIFileName($media['name']);
 			$file_name = str_replace(" ", "_", $file_name);
 			$file = $mob_dir . "/" . $file_name;
 			$title = $file_name;

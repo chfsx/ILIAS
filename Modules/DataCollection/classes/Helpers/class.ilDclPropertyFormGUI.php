@@ -46,7 +46,7 @@ class ilDclPropertyFormGUI extends ilPropertyFormGUI {
 			return;
 		}
 
-		$a_name = ilUtil::getAsciiFileName($a_name);
+		$a_name = ilFileDelivery::returnASCIIFileName($a_name);
 
 		$tmp_file_name = implode("~~", array($user_id,
 			$a_hash,
