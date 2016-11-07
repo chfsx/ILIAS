@@ -89,6 +89,7 @@ class ilObjBibliographic extends ilObject2 {
 		                  $ilDB->quote($this->getFilename(), "text") . "," . // filename
 		                  $ilDB->quote($this->getOnline(), "integer") . // is_online
 		                  ")");
+		$this->writeSourcefileEntriesToDb();
 	}
 
 
