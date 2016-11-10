@@ -2262,7 +2262,7 @@ class ilUtil
 	{
 		require_once('./Services/FileDelivery/classes/class.ilFileDelivery.php');
 
-		return ilFileDelivery::returnASCIIFileName($a_filename);
+		return ILIAS\FileDelivery\ilFileDelivery::returnASCIIFileName($a_filename);
 	}
 
 	/**

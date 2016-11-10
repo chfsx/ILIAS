@@ -857,7 +857,7 @@ class ilInitialisation
 		self::$already_initialized = true;
 
 		self::initCore();
-				
+		self::initHTTPServices($GLOBALS["DIC"]);
 		if(ilContext::initClient())
 		{
 			self::initClient();
@@ -1174,6 +1174,22 @@ class ilInitialisation
 		}
 		ilLoggerFactory::getLogger('init')->debug('Redirect to login page.');
 		return self::goToLogin();
+	}
+
+
+	/**
+	 * @param \ILIAS\DI\Container $c
+	 */
+	protected static function initHTTPServices(\ILIAS\DI\Container $c) {
+		$c["http.cookies"] = function () {
+			return new ILIAS\HTTP\Cookies\Cookies();
+		};
+		$c["http.headers"] = function () {
+			return new ILIAS\HTTP\Headers\Headers();
+		};
+		$c["http.status"] = function () {
+			return new ILIAS\HTTP\Status\Status();
+		};
 	}
 
 	/**

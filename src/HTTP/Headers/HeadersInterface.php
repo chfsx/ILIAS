@@ -1,11 +1,13 @@
 <?php
+/* Copyright (c) 2016 Fabian Schmid <fs@studer-raimann.ch> Extended GPL, see docs/LICENSE */
+namespace ILIAS\HTTP\Headers;
 
 /**
- * Interface ilFileDeliveryHeaders
+ * Interface HeadersInterface
  *
- * @author Fabian Schmid <fs@studer-raimann.ch>
+ * @package ILIAS\HTTP\Headers
  */
-interface ilFileDeliveryHeaders {
+interface HeadersInterface {
 
 	const ACCEPT_RANGES = 'Accept-Ranges';
 	const CACHE_CONTROL = 'Cache-Control';
@@ -20,6 +22,8 @@ interface ilFileDeliveryHeaders {
 
 
 	/**
+	 * Adds a header to the Stack
+	 *
 	 * @param $name    string HTTP-Header-Name, e.g. "Last-Modified"
 	 * @param $value   string It's value, e.g. "Wed, 15 Nov 1995 04:58:08 GMT"
 	 * @param $replace bool replace existing value
@@ -43,7 +47,23 @@ interface ilFileDeliveryHeaders {
 
 
 	/**
+	 * Sends a header directly and ads it to the stack
+	 *
+	 * @param $name    string HTTP-Header-Name, e.g. "Last-Modified"
+	 * @param $value   string It's value, e.g. "Wed, 15 Nov 1995 04:58:08 GMT"
+	 * @return bool
+	 */
+	public function send($name, $value);
+
+
+	/**
 	 * @return array ['Header-Name One' => 'Header-Value One', 'Header-Name Two' => 'Header-Value Two', ... ]
 	 */
 	public function getAll();
+
+
+	/**
+	 * @return bool if headers where sent or not
+	 */
+	public function sendAll();
 }

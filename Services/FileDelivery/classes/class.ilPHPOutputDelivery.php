@@ -1,5 +1,7 @@
 <?php
 require_once('class.ilFileDelivery.php');
+require_once('Delivery.php');
+use ILIAS\FileDelivery\Delivery as Delivery;
 
 /**
  * Class ilPHPOutputDelivery
@@ -10,7 +12,7 @@ require_once('class.ilFileDelivery.php');
 class ilPHPOutputDelivery {
 
 	/**
-	 * @var ilFileDelivery
+	 * @var ILIAS\FileDelivery\Delivery
 	 */
 	protected $ilFileDelivery;
 
@@ -20,7 +22,7 @@ class ilPHPOutputDelivery {
 	 * @param string $mime_type
 	 */
 	public function start($download_file_name, $mime_type = ilMimeTypeUtil::APPLICATION__OCTET_STREAM) {
-		$this->ilFileDelivery = new ilFileDelivery(ilFileDelivery::DIRECT_PHP_OUTPUT);
+		$this->ilFileDelivery = new Delivery(ilFileDelivery::DIRECT_PHP_OUTPUT);
 		$this->ilFileDelivery->setMimeType($mime_type);
 		$this->ilFileDelivery->setDownloadFileName($download_file_name);
 		$this->ilFileDelivery->setDisposition(ilFileDelivery::DISP_ATTACHMENT);

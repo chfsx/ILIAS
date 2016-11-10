@@ -1,4 +1,5 @@
 <?php
+use ILIAS\HTTP\Headers\HeadersInterface as Headers;
 
 /**
  * Interface ilFileDeliveryType
@@ -8,16 +9,19 @@
 interface ilFileDeliveryType {
 
 	/**
+	 * @param $path_to_file
+	 * @param \ILIAS\HTTP\Headers\HeadersInterface $headers
 	 * @return bool
 	 */
-	public function prepare($path_to_file);
+	public function prepare($path_to_file, Headers $headers);
 
 
 	/**
 	 * @param string $path_to_file absolute path to file
+	 * @param  \ILIAS\HTTP\Headers\HeadersInterface $headers
 	 * @return bool
 	 */
-	public function deliver($path_to_file);
+	public function deliver($path_to_file, Headers $headers);
 
 
 	/**

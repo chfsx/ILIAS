@@ -1,6 +1,8 @@
 <?php
 namespace ILIAS\FileDelivery\FileDeliveryTypes;
 
+use ILIAS\HTTP\Headers\HeadersInterface as Headers;
+
 require_once('./Services/FileDelivery/interfaces/int.ilFileDeliveryType.php');
 
 /**
@@ -13,9 +15,9 @@ class XSendfile implements \ilFileDeliveryType {
 	/**
 	 * @inheritdoc
 	 */
-	public function prepare($path_to_file) {
-//		$this->clearHeaders();
-//		$this->setDispositionHeaders();
+	public function prepare($path_to_file, Headers $headers) {
+		//		$this->clearHeaders();
+		//		$this->setDispositionHeaders();
 		return true;
 	}
 
@@ -23,7 +25,7 @@ class XSendfile implements \ilFileDeliveryType {
 	/**
 	 * @inheritdoc
 	 */
-	public function deliver($path_to_file) {
+	public function deliver($path_to_file, Headers $headers) {
 		header('X-Sendfile: ' . realpath($path_to_file));
 
 		return true;

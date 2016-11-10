@@ -1,6 +1,6 @@
 <?php
 namespace ILIAS\FileDelivery\FileDeliveryTypes;
-
+use ILIAS\HTTP\Headers\HeadersInterface as Headers;
 require_once('./Services/FileDelivery/interfaces/int.ilFileDeliveryType.php');
 
 /**
@@ -19,16 +19,16 @@ class PHP implements \ilFileDeliveryType {
 	/**
 	 * @inheritdoc
 	 */
-	public function prepare($path_to_file) {
+	public function prepare($path_to_file, Headers $headers) {
 		set_time_limit(0);
-		$this->file = fopen(($path_to_file), "rb");
+		$this->file = fopen($path_to_file, "rb");
 	}
 
 
 	/**
 	 * @inheritdoc
 	 */
-	public function deliver($path_to_file) {
+	public function deliver($path_to_file, Headers $headers) {
 		fpassthru($this->file);
 	}
 

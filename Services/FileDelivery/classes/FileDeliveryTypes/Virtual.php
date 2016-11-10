@@ -1,6 +1,8 @@
 <?php
 namespace ILIAS\FileDelivery\FileDeliveryTypes;
 
+use ILIAS\HTTP\Headers\HeadersInterface as Headers;
+
 require_once('./Services/FileDelivery/interfaces/int.ilFileDeliveryType.php');
 
 /**
@@ -17,7 +19,7 @@ class Virtual implements \ilFileDeliveryType {
 	/**
 	 * @inheritdoc
 	 */
-	public function prepare($path_to_file) {
+	public function prepare($path_to_file, Headers $headers) {
 		// $this->clearHeaders();
 		return true;
 	}
@@ -26,9 +28,7 @@ class Virtual implements \ilFileDeliveryType {
 	/**
 	 * @inheritdoc
 	 */
-	public function deliver($path_to_file) {
-		$path_to_file = $this->getPathToFile();
-
+	public function deliver($path_to_file, Headers $headers) {
 		header('Content-type:');
 		if (strpos($path_to_file, './' . self::DATA . '/') === 0 && is_dir('./' . self::VIRTUAL_DATA)) {
 			$path_to_file = str_replace('./' . self::DATA . '/', '/' . self::VIRTUAL_DATA . '/', $path_to_file);

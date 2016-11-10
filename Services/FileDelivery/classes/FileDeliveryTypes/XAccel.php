@@ -1,6 +1,8 @@
 <?php
 namespace ILIAS\FileDelivery\FileDeliveryTypes;
 
+use ILIAS\HTTP\Headers\HeadersInterface as Headers;
+
 require_once('./Services/FileDelivery/interfaces/int.ilFileDeliveryType.php');
 
 /**
@@ -17,8 +19,10 @@ class XAccel implements \ilFileDeliveryType {
 	/**
 	 * @inheritdoc
 	 */
-	public function prepare($path_to_file) {
-		// $this->clearHeaders();
+	public function prepare($path_to_file, Headers $headers) {
+		$headers->clear();
+		$headers->add(\ilFileDeliveryHeaders::CONTENT_TYPE, '');
+
 		return true;
 	}
 
@@ -26,8 +30,7 @@ class XAccel implements \ilFileDeliveryType {
 	/**
 	 * @inheritdoc
 	 */
-	public function deliver($path_to_file) {
-		header('Content-type:');
+	public function deliver($path_to_file, Headers $headers) {
 		if (strpos($path_to_file, './' . self::DATA . '/') === 0) {
 			$path_to_file = str_replace('./' . self::DATA . '/', '/' . self::SECURED_DATA . '/', $path_to_file);
 		}

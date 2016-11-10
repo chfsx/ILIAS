@@ -1,6 +1,6 @@
 <?php
 namespace ILIAS\FileDelivery\FileDeliveryTypes;
-
+use ILIAS\HTTP\Headers\HeadersInterface as Headers;
 require_once('./Services/FileDelivery/interfaces/int.ilFileDeliveryType.php');
 
 /**
@@ -13,7 +13,7 @@ class PHPChunked implements \ilFileDeliveryType {
 	/**
 	 * @inheritdoc
 	 */
-	public function prepare($path_to_file) {
+	public function prepare($path_to_file, Headers $headers) {
 		return true;
 	}
 
@@ -21,7 +21,7 @@ class PHPChunked implements \ilFileDeliveryType {
 	/**
 	 * @inheritdoc
 	 */
-	public function deliver($path_to_file) {
+	public function deliver($path_to_file, Headers $headers) {
 		$file = $this->getPathToFile();
 		$fp = @fopen($file, 'rb');
 

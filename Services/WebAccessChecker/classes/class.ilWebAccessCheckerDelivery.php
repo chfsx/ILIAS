@@ -1,7 +1,10 @@
 <?php
+
 require_once('./Services/WebAccessChecker/classes/class.ilWebAccessChecker.php');
 require_once('./Services/WebAccessChecker/classes/class.ilHTTP.php');
+require_once('./Services/FileDelivery/classes/Delivery.php');
 require_once('./Services/FileDelivery/classes/class.ilFileDelivery.php');
+use ILIAS\FileDelivery\Delivery as F;
 
 /**
  * Class ilWebAccessCheckerDelivery
@@ -84,16 +87,16 @@ class ilWebAccessCheckerDelivery {
 
 
 	protected function deliverDummyImage() {
-		$ilFileDelivery = new ilFileDelivery('./Services/WebAccessChecker/templates/images/access_denied.png', $this->ilWebAccessChecker->getPathObject()
-		                                                                                                                                ->getFileName());
+		$ilFileDelivery = new F('./Services/WebAccessChecker/templates/images/access_denied.png', $this->ilWebAccessChecker->getPathObject()
+		                                                                                                                   ->getFileName());
 		$ilFileDelivery->setDisposition($this->ilWebAccessChecker->getDisposition());
 		$ilFileDelivery->deliver();
 	}
 
 
 	protected function deliverDummyVideo() {
-		$ilFileDelivery = new ilFileDelivery('./Services/WebAccessChecker/templates/images/access_denied.mp4', $this->ilWebAccessChecker->getPathObject()
-		                                                                                                                                ->getFileName());
+		$ilFileDelivery = new F('./Services/WebAccessChecker/templates/images/access_denied.mp4', $this->ilWebAccessChecker->getPathObject()
+		                                                                                                                   ->getFileName());
 		$ilFileDelivery->setDisposition($this->ilWebAccessChecker->getDisposition());
 		$ilFileDelivery->stream();
 	}
@@ -140,7 +143,7 @@ class ilWebAccessCheckerDelivery {
 			throw new ilWACException(ilWACException::ACCESS_WITHOUT_CHECK);
 		}
 
-		$ilFileDelivery = new ilFileDelivery($this->ilWebAccessChecker->getPathObject()->getPath());
+		$ilFileDelivery = new F($this->ilWebAccessChecker->getPathObject()->getPath());
 		$ilFileDelivery->setCache(false);
 		$ilFileDelivery->setDisposition($this->ilWebAccessChecker->getDisposition());
 		ilWACLog::getInstance()->write('Deliver file using ' . $ilFileDelivery->getDeliveryType());

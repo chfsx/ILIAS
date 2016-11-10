@@ -108,4 +108,13 @@ class Container extends \Pimple\Container {
 	public function ui() {
 		return new UIServices($this);
 	}
+
+
+	/**
+	 * get the Interface to several HTPP-Services
+	 * @return HTTPServices
+	 */
+	public function http() {
+		return new HTTPServices($this);
+	}
 }
